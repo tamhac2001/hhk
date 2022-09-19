@@ -142,9 +142,8 @@ model User {
   phoneNumber String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  cart        Cart?    @relation(fields: [cartId], references: [id])
+  cart        Cart?
 
-  cartId String? @unique @db.ObjectId
   orders Order[]
 
   @@map("users")
@@ -155,27 +154,32 @@ model Cart {
   cartDetails CartDetail[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  user        User?
+  user        User         @relation(fields: [userId], references: [id])
+
+  userId String @unique @db.ObjectId
 
   @@map("carts")
 }
 
 model CartDetail {
   id         String           @id @default(auto()) @map("_id") @db.ObjectId
-  laptop     Laptop?          @relation(fields: [laptopId], references: [id])
   smartphone Smartphone?      @relation(fields: [smartphoneId], references: [id])
   tablet     Tablet?          @relation(fields: [tabletId], references: [id])
+  laptop     Laptop?          @relation(fields: [laptopId], references: [id])
   buyOptions DeviceBuyOptions
   quantity   Int
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
-  cart         Cart?   @relation(fields: [cartId], references: [id])
-  cartId       String? @db.ObjectId
-  laptopId     String? @db.ObjectId
+  cart         Cart    @relation(fields: [cartId], references: [id])
+  cartId       String  @db.ObjectId
   smartphoneId String? @db.ObjectId
   tabletId     String? @db.ObjectId
+  laptopId     String? @db.ObjectId
 
+  @@unique([cartId, smartphoneId])
+  @@unique([cartId, tabletId])
+  @@unique([cartId, laptopId])
   @@map("cartDetails")
 }
 
@@ -183,14 +187,14 @@ type DeviceBuyOptions {
   ram     String?
   storage String?
   color   String?
-  price   Int?
+  price   Int
 }
 
 model Order {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  user         User?         @relation(fields: [userId], references: [id])
-  userId       String?       @db.ObjectId
+  user         User          @relation(fields: [userId], references: [id])
+  userId       String        @unique @db.ObjectId
   orderDetails OrderDetail[]
   createdAt    DateTime      @default(now())
 
@@ -207,11 +211,14 @@ model OrderDetail {
   total      String
   createdAt  DateTime         @default(now())
 
-  laptopId     String? @db.ObjectId
+  order        Order   @relation(fields: [orderId], references: [id])
+  orderId      String  @db.ObjectId
   smartphoneId String? @db.ObjectId
   tabletId     String? @db.ObjectId
-  order        Order?  @relation(fields: [orderId], references: [id])
-  orderId      String? @db.ObjectId
+  laptopId     String? @db.ObjectId
 
+  @@unique([orderId, smartphoneId])
+  @@unique([orderId, tabletId])
+  @@unique([orderId, laptopId])
   @@map("orderDetails")
 }
