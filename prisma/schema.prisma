@@ -1,0 +1,217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Smartphone {
+  id            String             @id @default(auto()) @map("_id") @db.ObjectId
+  code          String             @unique
+  manufacturer  PhoneManufacturer
+  name          String             @unique
+  specification PhoneSpecification
+  buyOptions    PhoneBuyOptions[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  cartDetails  CartDetail[]
+  orderDetails OrderDetail[]
+
+  @@map("smartphones")
+}
+
+type PhoneSpecification {
+  screen      String
+  backCamera  String
+  frontCamera String
+  cpu         String
+}
+
+type PhoneBuyOptions {
+  ram       String?
+  storage   String?
+  color     String?
+  imagesUrl String[]
+  price     Int
+  inStock   Int
+}
+
+enum PhoneManufacturer {
+  Apple
+  Samsung
+  OPPO
+  Xiaomi
+  Vivo
+  Asus
+  Nokia
+  Realme
+}
+
+model Tablet {
+  id            String              @id @default(auto()) @map("_id") @db.ObjectId
+  code          String              @unique
+  manufacturer  TabletManufacturer
+  name          String              @unique
+  specification TabletSpecification
+  buyOptions    TabletBuyOptions[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  cartDetails  CartDetail[]
+  orderDetails OrderDetail[]
+
+  @@map("tablets")
+}
+
+type TabletSpecification {
+  screen      String
+  backCamera  String
+  frontCamera String
+  cpu         String
+}
+
+type TabletBuyOptions {
+  ram       String?
+  storage   String?
+  color     String?
+  imagesUrl String[]
+  price     Int
+  inStock   Int
+}
+
+enum TabletManufacturer {
+  Apple
+  Samsung
+}
+
+model Laptop {
+  id            String              @id @default(auto()) @map("_id") @db.ObjectId
+  code          String              @unique
+  manufacturer  LaptopManufacturer
+  name          String              @unique
+  specification LaptopSpecification
+  buyOptions    LaptopBuyOptions[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  cartDetails  CartDetail[]
+  orderDetails OrderDetail[]
+
+  @@map("laptops")
+}
+
+type LaptopSpecification {
+  screen String
+  cpu    String
+  gpu    String
+}
+
+type LaptopBuyOptions {
+  ram       String?
+  storage   String?
+  color     String?
+  imagesUrl String[]
+  price     Int
+  inStock   Int
+}
+
+enum LaptopManufacturer {
+  Apple
+  Asus
+  HP
+  Acer
+  MSI
+  Lenovo
+  Dell
+  Gigabyte
+  LG
+  Microsoft
+}
+
+model User {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  email       String   @unique
+  password    String
+  name        String
+  phoneNumber String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  cart        Cart?    @relation(fields: [cartId], references: [id])
+
+  cartId String? @unique @db.ObjectId
+  orders Order[]
+
+  @@map("users")
+}
+
+model Cart {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  cartDetails CartDetail[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User?
+
+  @@map("carts")
+}
+
+model CartDetail {
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
+  laptop     Laptop?          @relation(fields: [laptopId], references: [id])
+  smartphone Smartphone?      @relation(fields: [smartphoneId], references: [id])
+  tablet     Tablet?          @relation(fields: [tabletId], references: [id])
+  buyOptions DeviceBuyOptions
+  quantity   Int
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  cart         Cart?   @relation(fields: [cartId], references: [id])
+  cartId       String? @db.ObjectId
+  laptopId     String? @db.ObjectId
+  smartphoneId String? @db.ObjectId
+  tabletId     String? @db.ObjectId
+
+  @@map("cartDetails")
+}
+
+type DeviceBuyOptions {
+  ram     String?
+  storage String?
+  color   String?
+  price   Int?
+}
+
+model Order {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  user         User?         @relation(fields: [userId], references: [id])
+  userId       String?       @db.ObjectId
+  orderDetails OrderDetail[]
+  createdAt    DateTime      @default(now())
+
+  @@map("orders")
+}
+
+model OrderDetail {
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
+  laptop     Laptop?          @relation(fields: [laptopId], references: [id])
+  smartphone Smartphone?      @relation(fields: [smartphoneId], references: [id])
+  tablet     Tablet?          @relation(fields: [tabletId], references: [id])
+  buyOptions DeviceBuyOptions
+  quantity   Int
+  total      String
+  createdAt  DateTime         @default(now())
+
+  laptopId     String? @db.ObjectId
+  smartphoneId String? @db.ObjectId
+  tabletId     String? @db.ObjectId
+  order        Order?  @relation(fields: [orderId], references: [id])
+  orderId      String? @db.ObjectId
+
+  @@map("orderDetails")
+}
