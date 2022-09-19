@@ -10,128 +10,62 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Smartphone {
-  id            String             @id @default(auto()) @map("_id") @db.ObjectId
-  code          String             @unique
-  manufacturer  PhoneManufacturer
-  name          String             @unique
-  specification PhoneSpecification
-  buyOptions    PhoneBuyOptions[]
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+model Device {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  code          String        @unique
+  deviceType    DeviceType
+  name          String        @unique
+  manufacturer  Manufacturer
+  specification Specification
+  buyOptions    BuyOptions[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  CartDetail    CartDetail[]
+  OrderDetail   OrderDetail[]
 
-  cartDetails  CartDetail[]
-  orderDetails OrderDetail[]
-
-  @@map("smartphones")
+  @@map("devices")
 }
 
-type PhoneSpecification {
-  screen      String
-  backCamera  String
-  frontCamera String
-  cpu         String
+enum DeviceType {
+  laptop
+  smartphone
+  tablet
 }
 
-type PhoneBuyOptions {
-  ram       String?
-  storage   String?
-  color     String?
-  imagesUrl String[]
-  price     Int
-  inStock   Int
-}
-
-enum PhoneManufacturer {
-  Apple
-  Samsung
-  OPPO
-  Xiaomi
-  Vivo
-  Asus
-  Nokia
-  Realme
-}
-
-model Tablet {
-  id            String              @id @default(auto()) @map("_id") @db.ObjectId
-  code          String              @unique
-  manufacturer  TabletManufacturer
-  name          String              @unique
-  specification TabletSpecification
-  buyOptions    TabletBuyOptions[]
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-
-  cartDetails  CartDetail[]
-  orderDetails OrderDetail[]
-
-  @@map("tablets")
-}
-
-type TabletSpecification {
-  screen      String
-  backCamera  String
-  frontCamera String
-  cpu         String
-}
-
-type TabletBuyOptions {
-  ram       String?
-  storage   String?
-  color     String?
-  imagesUrl String[]
-  price     Int
-  inStock   Int
-}
-
-enum TabletManufacturer {
-  Apple
-  Samsung
-}
-
-model Laptop {
-  id            String              @id @default(auto()) @map("_id") @db.ObjectId
-  code          String              @unique
-  manufacturer  LaptopManufacturer
-  name          String              @unique
-  specification LaptopSpecification
-  buyOptions    LaptopBuyOptions[]
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-
-  cartDetails  CartDetail[]
-  orderDetails OrderDetail[]
-
-  @@map("laptops")
-}
-
-type LaptopSpecification {
-  screen String
-  cpu    String
-  gpu    String
-}
-
-type LaptopBuyOptions {
-  ram       String?
-  storage   String?
-  color     String?
-  imagesUrl String[]
-  price     Int
-  inStock   Int
-}
-
-enum LaptopManufacturer {
-  Apple
-  Asus
-  HP
+enum Manufacturer {
   Acer
-  MSI
-  Lenovo
+  Apple
+  Asus
   Dell
   Gigabyte
+  HP
+  Lenovo
   LG
   Microsoft
+  MSI
+  Nokia
+  OPPO
+  Samsung
+  Realme
+  Xiaomi
+  Vivo
+}
+
+type Specification {
+  cpu         String
+  backCamera  String
+  frontCamera String
+  gpu         String
+  screen      String
+}
+
+type BuyOptions {
+  color     String?
+  ram       String?
+  storage   String?
+  price     Int
+  inStock   Int
+  imagesUrl String[]
 }
 
 model User {
@@ -140,21 +74,20 @@ model User {
   password    String
   name        String
   phoneNumber String
+  cart        Cart?
+  orders      Order[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  cart        Cart?
-
-  orders Order[]
 
   @@map("users")
 }
 
 model Cart {
   id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  user        User         @relation(fields: [userId], references: [id])
   cartDetails CartDetail[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  user        User         @relation(fields: [userId], references: [id])
 
   userId String @unique @db.ObjectId
 
@@ -162,32 +95,19 @@ model Cart {
 }
 
 model CartDetail {
-  id         String           @id @default(auto()) @map("_id") @db.ObjectId
-  smartphone Smartphone?      @relation(fields: [smartphoneId], references: [id])
-  tablet     Tablet?          @relation(fields: [tabletId], references: [id])
-  laptop     Laptop?          @relation(fields: [laptopId], references: [id])
-  buyOptions DeviceBuyOptions
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  device     Device   @relation(fields: [deviceId], references: [id])
+  buyOptions Int /// the index of buyOptions of device
   quantity   Int
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  cart         Cart    @relation(fields: [cartId], references: [id])
-  cartId       String  @db.ObjectId
-  smartphoneId String? @db.ObjectId
-  tabletId     String? @db.ObjectId
-  laptopId     String? @db.ObjectId
+  cart     Cart   @relation(fields: [cartId], references: [id])
+  cartId   String @db.ObjectId
+  deviceId String @db.ObjectId
 
-  @@unique([cartId, smartphoneId])
-  @@unique([cartId, tabletId])
-  @@unique([cartId, laptopId])
+  @@unique([cartId, deviceId, buyOptions])
   @@map("cartDetails")
-}
-
-type DeviceBuyOptions {
-  ram     String?
-  storage String?
-  color   String?
-  price   Int
 }
 
 model Order {
@@ -202,23 +122,17 @@ model Order {
 }
 
 model OrderDetail {
-  id         String           @id @default(auto()) @map("_id") @db.ObjectId
-  laptop     Laptop?          @relation(fields: [laptopId], references: [id])
-  smartphone Smartphone?      @relation(fields: [smartphoneId], references: [id])
-  tablet     Tablet?          @relation(fields: [tabletId], references: [id])
-  buyOptions DeviceBuyOptions
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  device     Device @relation(fields: [deviceId], references: [id])
+  buyOptions Int /// the index of buyOptions of device
+  price      Int
   quantity   Int
   total      String
-  createdAt  DateTime         @default(now())
 
-  order        Order   @relation(fields: [orderId], references: [id])
-  orderId      String  @db.ObjectId
-  smartphoneId String? @db.ObjectId
-  tabletId     String? @db.ObjectId
-  laptopId     String? @db.ObjectId
+  order    Order  @relation(fields: [orderId], references: [id])
+  orderId  String @db.ObjectId
+  deviceId String @db.ObjectId
 
-  @@unique([orderId, smartphoneId])
-  @@unique([orderId, tabletId])
-  @@unique([orderId, laptopId])
+  @@unique([deviceId, buyOptions])
   @@map("orderDetails")
 }
