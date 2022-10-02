@@ -1,31 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import { PhoneManufacturer } from '@prisma/client';
-import { SortBy } from 'src/core/dto';
+import { Manufacturer } from '@prisma/client';
+import { DeviceDto, PostDeviceDto } from 'src/core/dto';
+import { OrderBy } from 'src/core/enums';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SmartphoneDto } from './dto';
+import { cleanObject } from 'src/utils';
 @Injectable()
 export class SmartphoneService {
   constructor(private prisma: PrismaService) {}
 
   async find(
-    manufacturer?: PhoneManufacturer[],
+    manufacturer?: Manufacturer[],
     minPrice?: number,
     maxPrice?: number,
-    sortBy?: SortBy,
+    orderBy?: OrderBy,
+    page?: number,
   ) {
     console.log('manufacturer:' + manufacturer);
     console.log('min-price:' + minPrice);
     console.log('max-price:' + maxPrice);
-    console.log('sortBy:' + sortBy);
+    console.log('orderBy:' + orderBy);
+    console.log('page:' + page.toString());
 
-    const smartphones = await this.prisma.smartphone.findMany({
+    const displayedDevicePerPage = 20;
+
+    // get all default option smartphone
+    const smartphones = await this.prisma.device.findMany({
       where: {
+        deviceType: {
+          equals: 'smartphone',
+        },
         manufacturer: manufacturer
           ? {
               in: manufacturer,
             }
           : {},
-        buyOptions: {
+        stocks: {
           some: {
             price: {
               gte: minPrice,
@@ -33,64 +42,178 @@ export class SmartphoneService {
             },
           },
         },
+        isDefaultOption: true,
+      },
+      skip: displayedDevicePerPage * (page - 1),
+      take: displayedDevicePerPage,
+      include: {
+        stocks: {
+          select: {
+            id: true,
+            colorOption: {
+              select: {
+                id: true,
+                color: true,
+                imageUrls: true,
+              },
+            },
+            price: true,
+            quantity: true,
+          },
+        },
+        otherOptions: {
+          include: {
+            stocks: {
+              select: {
+                id: true,
+                colorOption: {
+                  select: {
+                    id: true,
+                    color: true,
+                    imageUrls: true,
+                  },
+                },
+                price: true,
+                quantity: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            inOrderDetails: true,
+            inCartDetails: true,
+          },
+        },
       },
     });
-    if (sortBy == SortBy.PriceAcs) {
-      // sort buyOptions price in each smartphone acs
-      smartphones.forEach((smartphone, i, _) => {
-        smartphone.buyOptions.sort((a, b) => a.price - b.price);
-      });
-      // sort each smartphone by there smallest price asc
-      return smartphones.sort(
-        (a, b) => a.buyOptions[0].price - b.buyOptions[0].price,
+    console.log(smartphones.length);
+
+    if (orderBy === OrderBy.PriceAcs) {
+      // sort smartphone by there smallest price asc
+      smartphones.sort((a, b) => a.stocks.at(0).price - b.stocks.at(0).price);
+    } else if (orderBy === OrderBy.PriceDesc) {
+      // sort smartphone by there smallest price desc
+      smartphones
+        .sort((a, b) => a.stocks.at(0).price - b.stocks.at(0).price)
+        .reverse();
+    } else {
+      // sort smartphone by there popularity
+      smartphones.sort(
+        (a, b) =>
+          a._count.inCartDetails +
+          a._count.inOrderDetails -
+          (b._count.inCartDetails + b._count.inOrderDetails),
       );
     }
-    // sort each smartphone by there smallest price desc
-    return smartphones
-      .sort((a, b) => a.buyOptions[0].price - b.buyOptions[0].price)
-      .reverse();
+    // delete _count from smartphone
+    smartphones.forEach((smartphone) => delete smartphone._count);
+    // delete null fields
+    cleanObject(smartphones);
+    return smartphones;
   }
 
-  async findByName(phoneName: string) {
-    return await this.prisma.smartphone.findUnique({
-      where: {
-        name: phoneName,
-      },
-    });
-  }
-
-  async create(dto: SmartphoneDto) {
-    const smartphone = await this.prisma.smartphone.findUnique({
-      where: {
-        code: dto.code,
-      },
-    });
-    if (!smartphone) {
-      return await this.prisma.smartphone.create({
-        data: {
-          code: dto.code,
-          name: dto.name,
-          manufacturer: dto.manufacture,
-          specification: dto.specification,
-          buyOptions: dto.buyOptions,
+  async create(dto: PostDeviceDto) {
+    return await this.prisma.device.create({
+      data: {
+        modelNumber: dto.modelNumber,
+        deviceType: dto.deviceType,
+        manufacturer: dto.manufacturer,
+        name: dto.name,
+        specifications: dto.specifications,
+        customizableSpecifications: dto.customizableSpecifications,
+        isDefaultOption: dto.isDefaultOption,
+        defaultOptionID: dto.defaultOptionID,
+        stocks: {
+          create: dto.stocks.map((stock) => {
+            return {
+              price: stock.price,
+              quantity: stock.quantity,
+              colorOption: stock.colorOption.id
+                ? {
+                    connect: {
+                      id: stock.colorOption.id,
+                    },
+                  }
+                : {
+                    create: {
+                      color: stock.colorOption.color,
+                      imageUrls: stock.colorOption.imageUrls,
+                    },
+                  },
+            };
+          }),
         },
-      });
-    }
-    return this.update(dto);
+      },
+      include: {
+        stocks: {
+          select: {
+            id: true,
+            colorOption: {
+              select: {
+                id: true,
+                color: true,
+                imageUrls: true,
+              },
+            },
+            price: true,
+            quantity: true,
+          },
+        },
+      },
+    });
   }
 
-  async update(dto: SmartphoneDto) {
-    return await this.prisma.smartphone.update({
+  async update(dto: DeviceDto) {
+    return await this.prisma.device.update({
       where: {
-        code: dto.code,
+        id: dto.id,
       },
       data: {
-        manufacturer: dto.manufacture,
-        specification: dto.specification,
-        buyOptions: dto.buyOptions,
+        modelNumber: dto.modelNumber,
+        name: dto.name,
+        manufacturer: dto.manufacturer,
+        specifications: dto.specifications,
+        customizableSpecifications: dto.customizableSpecifications,
+        stocks: {
+          update: dto.stocks.map((stock) => {
+            return {
+              where: {
+                id: stock.id,
+              },
+              data: {
+                price: stock.price,
+                quantity: stock.quantity,
+                colorOption: {
+                  update: {
+                    imageUrls: {
+                      set: stock.colorOption.imageUrls,
+                    },
+                  },
+                },
+              },
+            };
+          }),
+        },
+        isDefaultOption: dto.isDefaultOption,
+        defaultOptionID: dto.defaultOptionID,
+      },
+      include: {
+        stocks: {
+          select: {
+            id: true,
+            colorOption: {
+              select: {
+                id: true,
+                color: true,
+                imageUrls: true,
+              },
+            },
+            price: true,
+            quantity: true,
+          },
+        },
       },
     });
   }
-
-  // async updateCartDetail() {}
 }

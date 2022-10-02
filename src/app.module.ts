@@ -9,6 +9,8 @@ import { SmartphoneModule } from './smartphone/smartphone.module';
 import { TabletModule } from './tablet/tablet.module';
 import { UserModule } from './user/user.module';
 import { SearchModule } from './search/search.module';
+import { CartModule } from './cart/cart.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { SearchModule } from './search/search.module';
     LaptopModule,
     UserModule,
     SearchModule,
+    CartModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

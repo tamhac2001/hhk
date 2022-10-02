@@ -7,7 +7,7 @@ async function bootstrap() {
   app.setGlobalPrefix('/v1/api');
   app.useGlobalPipes(
     new ValidationPipe({
-      skipMissingProperties: true,
+      // skipMissingProperties: true,
       whitelist: true,
       transform: true,
     }),

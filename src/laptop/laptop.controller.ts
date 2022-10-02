@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   ParseArrayPipe,
   Patch,
@@ -8,9 +9,14 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { LaptopManufacturer } from '@prisma/client';
-import { PriceRangeDto, SortByDto } from 'src/core/dto';
-import { LaptopDto } from './dto';
+import { Manufacturer } from '@prisma/client';
+import {
+  DeviceDto,
+  OrderByDto,
+  PostDeviceDto,
+  PriceRangeDto,
+} from 'src/core/dto';
+
 import { LaptopService } from './laptop.service';
 
 @Controller('laptops')
@@ -18,46 +24,43 @@ export class LaptopController {
   constructor(private service: LaptopService) {}
 
   @Get()
-  find(
+  findLaptops(
     @Query(
       'manufacturers',
       new ParseArrayPipe({
         optional: true,
-        expectedType: Array<LaptopManufacturer>,
+        expectedType: Array<Manufacturer>,
         separator: ',',
       }),
     )
-    manufacturer?: Array<LaptopManufacturer>,
+    manufacturer?: Array<Manufacturer>,
     @Query()
     priceRange?: PriceRangeDto,
     @Query()
-    sortBy?: SortByDto,
+    orderByDto?: OrderByDto,
+    @Query('page', new DefaultValuePipe(1))
+    page?: number,
   ) {
     return this.service.find(
       manufacturer,
       priceRange.minPrice,
       priceRange.maxPrice,
-      sortBy.sortBy,
+      orderByDto.orderBy,
+      page,
     );
   }
-
-  @Get()
-  findByName(@Query('search') searchedString: string) {
-    return this.service.findBySearchedString(searchedString);
-  }
-
   @Post('create')
-  create(@Body() dto: LaptopDto) {
+  create(@Body() dto: PostDeviceDto) {
     return this.service.create(dto);
   }
 
   @Put('update')
-  update1(@Body() dto: LaptopDto) {
+  update1(@Body() dto: DeviceDto) {
     return this.service.update(dto);
   }
 
   @Patch('update')
-  update2(@Body() dto: LaptopDto) {
+  update2(@Body() dto: DeviceDto) {
     return this.service.update(dto);
   }
 }

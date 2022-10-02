@@ -1,32 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { LaptopManufacturer } from '@prisma/client';
-import { SortBy } from 'src/core/dto';
+import { Manufacturer } from '@prisma/client';
+import { DeviceDto, PostDeviceDto } from 'src/core/dto';
+import { OrderBy } from 'src/core/enums';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { LaptopDto } from './dto';
+import { cleanObject } from 'src/utils';
 
 @Injectable()
 export class LaptopService {
   constructor(private prisma: PrismaService) {}
 
   async find(
-    manufacturer?: LaptopManufacturer[],
+    manufacturer?: Manufacturer[],
     minPrice?: number,
     maxPrice?: number,
-    sortBy?: SortBy,
+    orderBy?: OrderBy,
+    page?: number,
   ) {
     console.log('manufacturer:' + manufacturer);
     console.log('min-price:' + minPrice);
     console.log('max-price:' + maxPrice);
-    console.log('sortBy:' + sortBy);
+    console.log('orderBy:' + orderBy);
+    console.log('page:' + page.toString());
 
-    const laptops = await this.prisma.laptop.findMany({
+    const displayedDevicePerPage = 20;
+
+    // get all default option laptop
+    const laptops = await this.prisma.device.findMany({
       where: {
+        deviceType: {
+          equals: 'laptop',
+        },
         manufacturer: manufacturer
           ? {
               in: manufacturer,
             }
           : {},
-        buyOptions: {
+        stocks: {
           some: {
             price: {
               gte: minPrice,
@@ -34,48 +43,178 @@ export class LaptopService {
             },
           },
         },
+        isDefaultOption: true,
+      },
+      skip: displayedDevicePerPage * (page - 1),
+      take: displayedDevicePerPage,
+      include: {
+        stocks: {
+          select: {
+            id: true,
+            colorOption: {
+              select: {
+                id: true,
+                color: true,
+                imageUrls: true,
+              },
+            },
+            price: true,
+            quantity: true,
+          },
+        },
+        otherOptions: {
+          include: {
+            stocks: {
+              select: {
+                id: true,
+                colorOption: {
+                  select: {
+                    id: true,
+                    color: true,
+                    imageUrls: true,
+                  },
+                },
+                price: true,
+                quantity: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            inOrderDetails: true,
+            inCartDetails: true,
+          },
+        },
       },
     });
-    if (sortBy == SortBy.PriceAcs) {
-      // sort buyOptions price in each laptop acs
-      laptops.forEach((laptop, i, _) => {
-        laptop.buyOptions.sort((a, b) => a.price - b.price);
-      });
-      // sort each laptop by there smallest price asc
-      return laptops.sort(
-        (a, b) => a.buyOptions[0].price - b.buyOptions[0].price,
+    console.log(laptops.length);
+
+    if (orderBy === OrderBy.PriceAcs) {
+      // sort laptop by there smallest price asc
+      laptops.sort((a, b) => a.stocks.at(0).price - b.stocks.at(0).price);
+    } else if (orderBy === OrderBy.PriceDesc) {
+      // sort laptop by there smallest price desc
+      laptops
+        .sort((a, b) => a.stocks.at(0).price - b.stocks.at(0).price)
+        .reverse();
+    } else {
+      // sort laptop by there popularity
+      laptops.sort(
+        (a, b) =>
+          a._count.inCartDetails +
+          a._count.inOrderDetails -
+          (b._count.inCartDetails + b._count.inOrderDetails),
       );
     }
-    // sort each laptop by there smallest price desc
-    return laptops
-      .sort((a, b) => a.buyOptions[0].price - b.buyOptions[0].price)
-      .reverse();
+    // delete _count from laptop
+    laptops.forEach((laptop) => delete laptop._count);
+    // delete null fields
+    cleanObject(laptops);
+    return laptops;
   }
 
-  async findBySearchedString(searchedString: string) {}
-
-  async create(dto: LaptopDto) {
-    return await this.prisma.laptop.upsert({
-      where: {
-        code: dto.code,
-      },
-      create: {
-        code: dto.code,
-        name: dto.name,
+  async create(dto: PostDeviceDto) {
+    return await this.prisma.device.create({
+      data: {
+        modelNumber: dto.modelNumber,
+        deviceType: dto.deviceType,
         manufacturer: dto.manufacturer,
-        specification: dto.specification,
-        buyOptions: dto.buyOptions,
+        name: dto.name,
+        specifications: dto.specifications,
+        customizableSpecifications: dto.customizableSpecifications,
+        isDefaultOption: dto.isDefaultOption,
+        defaultOptionID: dto.defaultOptionID,
+        stocks: {
+          create: dto.stocks.map((stock) => {
+            return {
+              price: stock.price,
+              quantity: stock.quantity,
+              colorOption: stock.colorOption.id
+                ? {
+                    connect: {
+                      id: stock.colorOption.id,
+                    },
+                  }
+                : {
+                    create: {
+                      color: stock.colorOption.color,
+                      imageUrls: stock.colorOption.imageUrls,
+                    },
+                  },
+            };
+          }),
+        },
       },
-      update: dto,
+      include: {
+        stocks: {
+          select: {
+            id: true,
+            colorOption: {
+              select: {
+                id: true,
+                color: true,
+                imageUrls: true,
+              },
+            },
+            price: true,
+            quantity: true,
+          },
+        },
+      },
     });
   }
 
-  async update(dto: LaptopDto) {
-    return await this.prisma.laptop.update({
+  async update(dto: DeviceDto) {
+    return await this.prisma.device.update({
       where: {
-        code: dto.code,
+        id: dto.id,
       },
-      data: dto,
+      data: {
+        modelNumber: dto.modelNumber,
+        name: dto.name,
+        manufacturer: dto.manufacturer,
+        specifications: dto.specifications,
+        customizableSpecifications: dto.customizableSpecifications,
+        stocks: {
+          update: dto.stocks.map((stock) => {
+            return {
+              where: {
+                id: stock.id,
+              },
+              data: {
+                price: stock.price,
+                quantity: stock.quantity,
+                colorOption: {
+                  update: {
+                    imageUrls: {
+                      set: stock.colorOption.imageUrls,
+                    },
+                  },
+                },
+              },
+            };
+          }),
+        },
+        isDefaultOption: dto.isDefaultOption,
+        defaultOptionID: dto.defaultOptionID,
+      },
+      include: {
+        stocks: {
+          select: {
+            id: true,
+            colorOption: {
+              select: {
+                id: true,
+                color: true,
+                imageUrls: true,
+              },
+            },
+            price: true,
+            quantity: true,
+          },
+        },
+      },
     });
   }
 }

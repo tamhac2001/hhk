@@ -1,16 +1,17 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
-  Param,
   ParseArrayPipe,
+  Patch,
   Post,
   Put,
   Query,
 } from '@nestjs/common';
-import { PhoneManufacturer } from '@prisma/client';
-import { PriceRangeDto, SortByDto } from 'src/core/dto';
-import { SmartphoneDto } from './dto';
+import { Manufacturer } from '@prisma/client';
+import { OrderByDto, PriceRangeDto } from 'src/core/dto';
+import { DeviceDto, PostDeviceDto } from 'src/core/dto/device.dto';
 import { SmartphoneService } from './smartphone.service';
 
 @Controller('smartphones')
@@ -23,36 +24,38 @@ export class SmartphoneController {
       'manufacturers',
       new ParseArrayPipe({
         optional: true,
-        expectedType: Array<PhoneManufacturer>,
+        expectedType: Array<Manufacturer>,
         separator: ',',
       }),
     )
-    manufacturer?: Array<PhoneManufacturer>,
+    manufacturer?: Array<Manufacturer>,
     @Query()
     priceRange?: PriceRangeDto,
     @Query()
-    sortBy?: SortByDto,
+    orderByDto?: OrderByDto,
+    @Query('page', new DefaultValuePipe(1))
+    page?: number,
   ) {
     return this.service.find(
       manufacturer,
       priceRange.minPrice,
       priceRange.maxPrice,
-      sortBy.sortBy,
+      orderByDto.orderBy,
+      page,
     );
   }
-
-  @Get(':phoneName')
-  findByName(@Param('phoneName') phoneName: string) {
-    return this.service.findByName(phoneName);
-  }
-
   @Post('create')
-  create(@Body() dto: SmartphoneDto) {
+  create(@Body() dto: PostDeviceDto) {
     return this.service.create(dto);
   }
 
   @Put('update')
-  update(@Body() dto: SmartphoneDto) {
+  update1(@Body() dto: DeviceDto) {
+    return this.service.update(dto);
+  }
+
+  @Patch('update')
+  update2(@Body() dto: DeviceDto) {
     return this.service.update(dto);
   }
 }

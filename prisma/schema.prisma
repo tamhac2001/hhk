@@ -11,19 +11,137 @@ datasource db {
 }
 
 model Device {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  code          String        @unique
-  deviceType    DeviceType
-  name          String        @unique
-  manufacturer  Manufacturer
-  specification Specification
-  buyOptions    BuyOptions[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  CartDetail    CartDetail[]
-  OrderDetail   OrderDetail[]
+  id                         String                      @id @default(auto()) @map("_id") @db.ObjectId
+  modelNumber                String
+  deviceType                 DeviceType
+  name                       String                      @unique
+  manufacturer               Manufacturer
+  specifications             Specifications
+  customizableSpecifications CustomizableSpecifications?
+  stocks                     Stock[]
+  isDefaultOption            Boolean                     @default(false)
+  defaultOptionID            String?                     @db.ObjectId
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+
+  inCartDetails  CartDetail[]
+  inOrderDetails OrderDetail[]
+  otherOptions   Device[]      @relation(name: "Options")
+  defaultOption  Device?       @relation(name: "Options", fields: [defaultOptionID], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("devices")
+}
+
+type Specifications {
+  cpu         String?
+  backCamera  String?
+  frontCamera String?
+  gpu         String?
+  screen      String?
+  ram         String?
+  storage     String?
+}
+
+type CustomizableSpecifications {
+  cpu           String?
+  gpu           String?
+  ram           String?
+  storage       String?
+  os            String?
+  mobileNetwork String?
+}
+
+model Stock {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  deviceID      String @db.ObjectId
+  colorOptionID String @db.ObjectId
+  quantity      Int
+  price         Int
+
+  device      Device      @relation(fields: [deviceID], references: [id])
+  colorOption ColorOption @relation(fields: [colorOptionID], references: [id])
+
+  @@unique([deviceID, colorOptionID])
+  @@map("stocks")
+}
+
+model ColorOption {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  color     String
+  imageUrls String[] @unique
+
+  stocks Stock[]
+
+  @@map("colorOptions")
+}
+
+model User {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  email       String   @unique
+  password    String
+  name        String
+  phoneNumber String
+  cart        Cart?
+  orders      Order[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Cart {
+  id          String       @id @map("_id") @db.ObjectId
+  cartDetails CartDetail[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user User @relation(fields: [id], references: [id])
+
+  @@map("carts")
+}
+
+model CartDetail {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  cartID    String   @db.ObjectId
+  deviceID  String   @db.ObjectId
+  stockID   String   @db.ObjectId
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart   Cart   @relation(fields: [cartID], references: [id])
+  device Device @relation(fields: [deviceID], references: [id])
+
+  @@unique([cartID, deviceID, stockID])
+  @@map("cartDetails")
+}
+
+model Order {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  userID       String        @unique @db.ObjectId
+  orderDetails OrderDetail[]
+  total        Int
+  createdAt    DateTime      @default(now())
+
+  user User @relation(fields: [userID], references: [id])
+
+  @@map("orders")
+}
+
+model OrderDetail {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  orderID  String @db.ObjectId
+  deviceID String @db.ObjectId
+  colorID  String @db.ObjectId
+  price    Int
+  quantity Int
+  total    Int
+
+  order  Order  @relation(fields: [orderID], references: [id])
+  device Device @relation(fields: [deviceID], references: [id])
+
+  @@unique([orderID, deviceID, colorID])
+  @@map("orderDetails")
 }
 
 enum DeviceType {
@@ -49,90 +167,4 @@ enum Manufacturer {
   Realme
   Xiaomi
   Vivo
-}
-
-type Specification {
-  cpu         String
-  backCamera  String
-  frontCamera String
-  gpu         String
-  screen      String
-}
-
-type BuyOptions {
-  color     String?
-  ram       String?
-  storage   String?
-  price     Int
-  inStock   Int
-  imagesUrl String[]
-}
-
-model User {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  email       String   @unique
-  password    String
-  name        String
-  phoneNumber String
-  cart        Cart?
-  orders      Order[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("users")
-}
-
-model Cart {
-  id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  user        User         @relation(fields: [userId], references: [id])
-  cartDetails CartDetail[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  userId String @unique @db.ObjectId
-
-  @@map("carts")
-}
-
-model CartDetail {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  device     Device   @relation(fields: [deviceId], references: [id])
-  buyOptions Int /// the index of buyOptions of device
-  quantity   Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  cart     Cart   @relation(fields: [cartId], references: [id])
-  cartId   String @db.ObjectId
-  deviceId String @db.ObjectId
-
-  @@unique([cartId, deviceId, buyOptions])
-  @@map("cartDetails")
-}
-
-model Order {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  user         User          @relation(fields: [userId], references: [id])
-  userId       String        @unique @db.ObjectId
-  orderDetails OrderDetail[]
-  createdAt    DateTime      @default(now())
-
-  @@map("orders")
-}
-
-model OrderDetail {
-  id         String @id @default(auto()) @map("_id") @db.ObjectId
-  device     Device @relation(fields: [deviceId], references: [id])
-  buyOptions Int /// the index of buyOptions of device
-  price      Int
-  quantity   Int
-  total      String
-
-  order    Order  @relation(fields: [orderId], references: [id])
-  orderId  String @db.ObjectId
-  deviceId String @db.ObjectId
-
-  @@unique([deviceId, buyOptions])
-  @@map("orderDetails")
 }
