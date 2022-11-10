@@ -52,11 +52,13 @@ type CustomizableSpecifications {
 }
 
 model Stock {
-  id            String @id @default(auto()) @map("_id") @db.ObjectId
-  deviceID      String @db.ObjectId
-  colorOptionID String @db.ObjectId
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  deviceID      String   @db.ObjectId
+  colorOptionID String   @db.ObjectId
   quantity      Int
   price         Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   device      Device      @relation(fields: [deviceID], references: [id])
   colorOption ColorOption @relation(fields: [colorOptionID], references: [id])

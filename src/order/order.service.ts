@@ -34,8 +34,8 @@ export class OrderService {
         orderDetails: true,
       },
     });
-    if(orderBy === OrderBy.Total){
-        orders.sort((a,b) => a.orderDetails.)
-    }
+    // if(orderBy === OrderBy.Total){
+    //     // orders.sort((a,b) => a.orderDetails.)
+    // }
   }
 }
