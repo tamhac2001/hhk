@@ -9,9 +9,10 @@ import {
   IsString,
 } from 'class-validator';
 import { SpecificationsDto } from './specifications.dto';
-import { PostStockDto, StockDto } from './stock.dto';
+import { PostStockDto } from './stock/post-stock.dto';
+import { StockDto } from './stock/stock.dto';
 
-export class PostDeviceDto {
+export class CreateDeviceDto {
   @IsString()
   readonly modelNumber: string;
 
@@ -31,8 +32,8 @@ export class PostDeviceDto {
   @IsNotEmptyObject()
   readonly customizableSpecifications: SpecificationsDto;
 
-  @IsObject({ each: true })
   @IsOptional()
+  @IsObject({ each: true })
   readonly stocks: Array<PostStockDto>;
 
   @IsBoolean()
@@ -44,7 +45,7 @@ export class PostDeviceDto {
   readonly defaultOptionID: string;
 }
 
-export class DeviceDto extends PostDeviceDto {
+export class DeviceDto extends CreateDeviceDto {
   @IsMongoId()
   @IsOptional()
   readonly id: string;

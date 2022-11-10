@@ -8,7 +8,7 @@ export class PriceRangeDto {
   })
   @IsOptional()
   @Transform(({ value }) => parseInt(value))
-  readonly minPrice: number = 0;
+  readonly minPrice?: number = 0;
 
   @Expose({
     name: 'max-price',
@@ -16,5 +16,5 @@ export class PriceRangeDto {
   })
   @IsOptional()
   @Transform(({ value }) => parseInt(value))
-  readonly maxPrice: number = Number.MAX_SAFE_INTEGER;
+  readonly maxPrice?: number = Number.MAX_SAFE_INTEGER;
 }

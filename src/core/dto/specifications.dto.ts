@@ -3,37 +3,37 @@ import { IsOptional, IsString } from 'class-validator';
 export class SpecificationsDto {
   @IsString()
   @IsOptional()
-  readonly cpu: string;
+  readonly cpu?: string;
 
   @IsString()
   @IsOptional()
-  readonly backCamera: string;
+  readonly backCamera?: string;
 
   @IsString()
   @IsOptional()
-  readonly frontCamera: string;
+  readonly frontCamera?: string;
 
   @IsString()
   @IsOptional()
-  readonly gpu: string;
+  readonly gpu?: string;
 
   @IsString()
   @IsOptional()
-  readonly screen: string;
+  readonly screen?: string;
 
   @IsString()
   @IsOptional()
-  readonly ram: string;
+  readonly ram?: string;
 
   @IsString()
   @IsOptional()
-  readonly storage: string;
+  readonly storage?: string;
 
   @IsString()
   @IsOptional()
-  readonly os: string;
+  readonly os?: string;
 
   @IsString()
   @IsOptional()
-  readonly mobileNetwork: string;
+  readonly mobileNetwork?: string;
 }

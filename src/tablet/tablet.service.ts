@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Manufacturer } from '@prisma/client';
-import { DeviceDto, PostDeviceDto } from 'src/core/dto';
+import { CreateDeviceDto, DeviceDto } from 'src/core/dto';
 import { OrderBy } from 'src/core/enums';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { cleanObject } from 'src/utils';
@@ -114,7 +114,7 @@ export class TabletService {
     return tablets;
   }
 
-  async create(dto: PostDeviceDto) {
+  async create(dto: CreateDeviceDto) {
     return await this.prisma.device.create({
       data: {
         modelNumber: dto.modelNumber,

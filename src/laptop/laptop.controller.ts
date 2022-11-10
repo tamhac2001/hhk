@@ -9,11 +9,12 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
 import { Manufacturer } from '@prisma/client';
 import {
+  CreateDeviceDto,
   DeviceDto,
   OrderByDto,
-  PostDeviceDto,
   PriceRangeDto,
 } from 'src/core/dto';
 
@@ -24,6 +25,20 @@ export class LaptopController {
   constructor(private service: LaptopService) {}
 
   @Get()
+  @ApiQuery({
+    name: 'manufacturers',
+    required: false,
+    isArray: true,
+    enum: Manufacturer,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+  })
+  @ApiOkResponse({
+    isArray: true,
+    type: DeviceDto,
+  })
   findLaptops(
     @Query(
       'manufacturers',
@@ -50,16 +65,25 @@ export class LaptopController {
     );
   }
   @Post('create')
-  create(@Body() dto: PostDeviceDto) {
+  @ApiCreatedResponse({
+    type: DeviceDto,
+  })
+  create(@Body() dto: CreateDeviceDto) {
     return this.service.create(dto);
   }
 
   @Put('update')
+  @ApiOkResponse({
+    type: DeviceDto,
+  })
   update1(@Body() dto: DeviceDto) {
     return this.service.update(dto);
   }
 
   @Patch('update')
+  @ApiOkResponse({
+    type: DeviceDto,
+  })
   update2(@Body() dto: DeviceDto) {
     return this.service.update(dto);
   }

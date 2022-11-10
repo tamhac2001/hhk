@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Manufacturer } from '@prisma/client';
 import { OrderByDto, PriceRangeDto } from 'src/core/dto';
-import { DeviceDto, PostDeviceDto } from 'src/core/dto/device.dto';
+import { CreateDeviceDto, DeviceDto } from 'src/core/dto/device.dto';
 import { SmartphoneService } from './smartphone.service';
 
 @Controller('smartphones')
@@ -45,7 +45,7 @@ export class SmartphoneController {
     );
   }
   @Post('create')
-  create(@Body() dto: PostDeviceDto) {
+  create(@Body() dto: CreateDeviceDto) {
     return this.service.create(dto);
   }
 

@@ -7,8 +7,8 @@ import { cleanObject } from 'src/utils';
 export class SearchService {
   constructor(private prisma: PrismaService) {}
 
-  async searchByString(searchedString: string) {
-    const searchedKeywordList = searchedString.split('-');
+  async searchByString(searchString: string) {
+    const searchedKeywordList = searchString.split('-');
     const searchedResult: Array<Device> = [];
     await this.searchSmartphone(searchedKeywordList, searchedResult);
     await this.searchTablet(searchedKeywordList, searchedResult);

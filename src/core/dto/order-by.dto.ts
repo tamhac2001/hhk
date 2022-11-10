@@ -13,5 +13,5 @@ export class OrderByDto {
     else if (value === 'price-desc') return OrderBy.PriceDesc;
     return OrderBy.Popularity;
   })
-  readonly orderBy: OrderBy = OrderBy.Popularity;
+  readonly orderBy?: OrderBy = OrderBy.Popularity;
 }
